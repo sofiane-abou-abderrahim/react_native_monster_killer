@@ -1,11 +1,12 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, StyleSheet, Text, View } from "react-native";
 import * as Progress from "react-native-progress";
 
 export default function App() {
   // Constants for damage values
   const ATTACK_VALUE = 10;
+  const MONSTER_ATTACK_VALUE = 14;
 
   // Initial maximum life for monster and player
   const chosenMaxLife = 100;
@@ -16,19 +17,32 @@ export default function App() {
   const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
 
   // Function to calculate random damage dealt to the monster
-  function dealMonsterDamage(damage) {
+  function dealDamage(damage) {
     const dealtDamage = Math.random() * damage;
     return dealtDamage;
   }
 
   // Handler function for the attack button
   function attackHandler() {
-    const damage = dealMonsterDamage(ATTACK_VALUE);
-    setCurrentMonsterHealth((prevHealth) => {
-      // Ensure health does not go below 0
-      const updatedHealth = Math.max(prevHealth - damage, 0);
-      return updatedHealth;
-    });
+    const monsterDamage = dealDamage(ATTACK_VALUE);
+    const playerDamage = dealDamage(MONSTER_ATTACK_VALUE);
+
+    const updatedMonsterHealth = Math.max(
+      currentMonsterHealth - monsterDamage,
+      0
+    ); // Ensure health does not go below 0
+    const updatedPlayerHealth = Math.max(currentPlayerHealth - playerDamage, 0); // Ensure health does not go below 0
+
+    setCurrentMonsterHealth(updatedMonsterHealth);
+    setCurrentPlayerHealth(updatedPlayerHealth);
+
+    if (updatedMonsterHealth <= 0 && updatedPlayerHealth > 0) {
+      Alert.alert("We won!");
+    } else if (updatedPlayerHealth <= 0 && updatedMonsterHealth > 0) {
+      Alert.alert("You lost!");
+    } else if (updatedMonsterHealth <= 0 && updatedPlayerHealth <= 0) {
+      Alert.alert("You have a draw!");
+    }
   }
 
   return (
