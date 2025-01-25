@@ -1,29 +1,65 @@
 import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 import * as Progress from "react-native-progress";
 
 export default function App() {
+  // Constants for damage values
+  const ATTACK_VALUE = 10;
+
+  // Initial maximum life for monster and player
+  const chosenMaxLife = 100;
+
+  // State variables for monster and player health
+  const [currentMonsterHealth, setCurrentMonsterHealth] =
+    useState(chosenMaxLife);
+  const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
+
+  // Function to calculate random damage dealt to the monster
+  function dealMonsterDamage(damage) {
+    const dealtDamage = Math.random() * damage;
+    return dealtDamage;
+  }
+
+  // Handler function for the attack button
+  function attackHandler() {
+    const damage = dealMonsterDamage(ATTACK_VALUE);
+    setCurrentMonsterHealth((prevHealth) => {
+      // Ensure health does not go below 0
+      const updatedHealth = Math.max(prevHealth - damage, 0);
+      return updatedHealth;
+    });
+  }
+
   return (
     <View style={styles.container}>
       {/* Health levels section */}
       <View style={styles.healthSection}>
         <Text style={styles.title}>MONSTER HEALTH</Text>
         {/* Monster health bar */}
-        <Progress.Bar progress={0.9} width={200} color="#ff0000" />
+        <Progress.Bar
+          progress={currentMonsterHealth / chosenMaxLife}
+          width={200}
+          color="#ff0000"
+        />
         <Text style={styles.title}>PLAYER HEALTH</Text>
         {/* Bonus life indicator */}
         <View style={styles.bonusLifeContainer}>
           <Text style={styles.bonusLife}>1</Text>
         </View>
         {/* Player health bar */}
-        <Progress.Bar progress={0.5} width={200} color="#00ff00" />
+        <Progress.Bar
+          progress={currentPlayerHealth / chosenMaxLife}
+          width={200}
+          color="#00ff00"
+        />
       </View>
 
       {/* Controls section */}
       <View style={styles.controls}>
         {/* Attack button */}
         <View style={styles.buttonContainer}>
-          <Button title="ATTACK" color="#841584" />
+          <Button title="ATTACK" color="#841584" onPress={attackHandler} />
         </View>
         {/* Strong attack button */}
         <View style={styles.buttonContainer}>
@@ -63,12 +99,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
-  },
-  // Styles for progress bars
-  progressBar: {
-    width: "80%",
-    height: 10,
-    marginVertical: 10,
   },
   // Container for bonus life indicator
   bonusLifeContainer: {
