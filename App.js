@@ -6,6 +6,7 @@ import * as Progress from "react-native-progress";
 export default function App() {
   // Constants for damage values
   const ATTACK_VALUE = 10;
+  const STRONG_ATTACK_VALUE = 17;
   const MONSTER_ATTACK_VALUE = 14;
 
   // Initial maximum life for monster and player
@@ -16,15 +17,21 @@ export default function App() {
     useState(chosenMaxLife);
   const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
 
-  // Function to calculate random damage dealt to the monster
+  // Function to calculate random damage dealt to the monster and the player
   function dealDamage(damage) {
     const dealtDamage = Math.random() * damage;
     return dealtDamage;
   }
 
-  // Handler function for the attack button
-  function attackHandler() {
-    const monsterDamage = dealDamage(ATTACK_VALUE);
+  // Handler function for the player's attack and monster's counter-attack
+  function attackAndCounterAttack(mode) {
+    let maxDamage;
+    if (mode === "ATTACK") {
+      maxDamage = ATTACK_VALUE;
+    } else if (mode === "STRONG_ATTACK") {
+      maxDamage = STRONG_ATTACK_VALUE;
+    }
+    const monsterDamage = dealDamage(maxDamage);
     const playerDamage = dealDamage(MONSTER_ATTACK_VALUE);
 
     const updatedMonsterHealth = Math.max(
@@ -43,6 +50,14 @@ export default function App() {
     } else if (updatedMonsterHealth <= 0 && updatedPlayerHealth <= 0) {
       Alert.alert("You have a draw!");
     }
+  }
+
+  function attackHandler() {
+    attackAndCounterAttack("ATTACK");
+  }
+
+  function strongAttackHandler() {
+    attackAndCounterAttack("STRONG_ATTACK");
   }
 
   return (
@@ -77,7 +92,11 @@ export default function App() {
         </View>
         {/* Strong attack button */}
         <View style={styles.buttonContainer}>
-          <Button title="STRONG ATTACK" color="#841584" />
+          <Button
+            title="STRONG ATTACK"
+            color="#841584"
+            onPress={strongAttackHandler}
+          />
         </View>
         {/* Heal button */}
         <View style={styles.buttonContainer}>
