@@ -1,5 +1,5 @@
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
 import { Alert, Button, StyleSheet, Text, View } from "react-native";
 import * as Progress from "react-native-progress";
 
@@ -8,6 +8,7 @@ export default function App() {
   const ATTACK_VALUE = 10;
   const STRONG_ATTACK_VALUE = 17;
   const MONSTER_ATTACK_VALUE = 14;
+  const HEAL_VALUE = 20;
 
   // Initial maximum life for monster and player
   const chosenMaxLife = 100;
@@ -17,14 +18,35 @@ export default function App() {
     useState(chosenMaxLife);
   const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
 
+  useEffect(() => {
+    if (currentMonsterHealth <= 0 && currentPlayerHealth > 0) {
+      Alert.alert("We won!");
+    } else if (currentPlayerHealth <= 0 && currentMonsterHealth > 0) {
+      Alert.alert("You lost!");
+    } else if (currentMonsterHealth <= 0 && currentPlayerHealth <= 0) {
+      Alert.alert("You have a draw!");
+    }
+  }, [currentMonsterHealth, currentPlayerHealth]);
+
   // Function to calculate random damage dealt to the monster and the player
   function dealDamage(damage) {
     const dealtDamage = Math.random() * damage;
     return dealtDamage;
   }
 
-  // Handler function for the player's attack and monster's counter-attack
-  function attackAndCounterAttack(mode) {
+  function attackPlayer() {
+    const playerDamage = dealDamage(MONSTER_ATTACK_VALUE);
+    // const updatedPlayerHealth = Math.max(currentPlayerHealth - playerDamage, 0); // Ensure health does not go below 0
+    // setCurrentPlayerHealth(updatedPlayerHealth);
+
+    setCurrentPlayerHealth((prevHealth) => {
+      const newPlayerHealth = Math.max(prevHealth - playerDamage, 0);
+      return newPlayerHealth;
+    });
+  }
+
+  // Handler function for the player's attacks
+  function attackMonster(mode) {
     let maxDamage;
     if (mode === "ATTACK") {
       maxDamage = ATTACK_VALUE;
@@ -32,32 +54,45 @@ export default function App() {
       maxDamage = STRONG_ATTACK_VALUE;
     }
     const monsterDamage = dealDamage(maxDamage);
-    const playerDamage = dealDamage(MONSTER_ATTACK_VALUE);
 
     const updatedMonsterHealth = Math.max(
       currentMonsterHealth - monsterDamage,
       0
     ); // Ensure health does not go below 0
-    const updatedPlayerHealth = Math.max(currentPlayerHealth - playerDamage, 0); // Ensure health does not go below 0
 
     setCurrentMonsterHealth(updatedMonsterHealth);
-    setCurrentPlayerHealth(updatedPlayerHealth);
 
-    if (updatedMonsterHealth <= 0 && updatedPlayerHealth > 0) {
-      Alert.alert("We won!");
-    } else if (updatedPlayerHealth <= 0 && updatedMonsterHealth > 0) {
-      Alert.alert("You lost!");
-    } else if (updatedMonsterHealth <= 0 && updatedPlayerHealth <= 0) {
-      Alert.alert("You have a draw!");
-    }
+    attackPlayer();
   }
 
   function attackHandler() {
-    attackAndCounterAttack("ATTACK");
+    attackMonster("ATTACK");
   }
 
   function strongAttackHandler() {
-    attackAndCounterAttack("STRONG_ATTACK");
+    attackMonster("STRONG_ATTACK");
+  }
+
+  function healPlayerHandler() {
+    let healValue;
+    if (currentPlayerHealth === chosenMaxLife) {
+      Alert.alert("Your health is already full!");
+      return;
+    }
+
+    if (currentPlayerHealth >= chosenMaxLife - HEAL_VALUE) {
+      Alert.alert("You can’t heal to more than your max initial health.");
+      healValue = chosenMaxLife - currentPlayerHealth;
+    } else {
+      healValue = HEAL_VALUE;
+    }
+
+    const updatedPlayerHealth = currentPlayerHealth + healValue;
+    setCurrentPlayerHealth(updatedPlayerHealth);
+
+    // Alert.alert(`You healed ${healValue} health points!`);
+
+    attackPlayer();
   }
 
   return (
@@ -100,7 +135,7 @@ export default function App() {
         </View>
         {/* Heal button */}
         <View style={styles.buttonContainer}>
-          <Button title="HEAL" color="#841584" />
+          <Button title="HEAL" color="#841584" onPress={healPlayerHandler} />
         </View>
         {/* Show log button */}
         <View style={styles.buttonContainer}>
