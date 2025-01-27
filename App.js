@@ -4,28 +4,33 @@ import { Alert, Button, StyleSheet, Text, View } from "react-native";
 import * as Progress from "react-native-progress";
 
 export default function App() {
-  // Constants for damage values
+  // Constants for attack and health values
   const ATTACK_VALUE = 10;
   const STRONG_ATTACK_VALUE = 17;
   const MONSTER_ATTACK_VALUE = 14;
-
-  // Initial maximum life for monster and player
-  const chosenMaxLife = 100;
-
   const HEAL_VALUE = 20;
 
-  // State variables for monster and player health
+  // Initial health points for player and monster
+  const chosenMaxLife = 100;
+
+  // State to track health points
   const [currentMonsterHealth, setCurrentMonsterHealth] =
     useState(chosenMaxLife);
   const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
 
-  // Track the player's health before the monster's attack
+  // State to track the player's previous health (for bonus life)
   const [previousPlayerHealth, setPreviousPlayerHealth] =
     useState(chosenMaxLife);
 
+  // State to check if the player has a bonus life
   const [hasBonusLife, setHasBonusLife] = useState(true);
 
+  // State to determine if the game is over
+  const [isGameOver, setIsGameOver] = useState(false);
+
+  // Effect to monitor health changes and handle game logic
   useEffect(() => {
+    // Handle bonus life when player's health drops to 0
     if (currentPlayerHealth <= 0 && hasBonusLife) {
       setHasBonusLife(false);
       setCurrentPlayerHealth(previousPlayerHealth); // Restore health to its state before the monster's attack
@@ -33,19 +38,29 @@ export default function App() {
       return;
     }
 
-    if (currentMonsterHealth <= 0 && currentPlayerHealth > 0) {
-      Alert.alert("We won!");
-    } else if (currentPlayerHealth <= 0 && currentMonsterHealth > 0) {
-      Alert.alert("You lost!");
-    } else if (currentMonsterHealth <= 0 && currentPlayerHealth <= 0) {
-      Alert.alert("You have a draw!");
+    // Handle game end scenarios
+    if (currentMonsterHealth <= 0 || currentPlayerHealth <= 0) {
+      setIsGameOver(true); // Mark the game as over
+
+      let resultMessage = "It's a draw!";
+      if (currentMonsterHealth <= 0 && currentPlayerHealth > 0) {
+        resultMessage = "We won!";
+      } else if (currentPlayerHealth <= 0 && currentMonsterHealth > 0) {
+        resultMessage = "You lost!";
+      }
+
+      // Show alert and wait for user to reset the game
+      Alert.alert(resultMessage, "Start a new game?", [
+        { text: "OK", onPress: reset }, // Reset the game on button press
+      ]);
     }
-  }, [
-    currentMonsterHealth,
-    currentPlayerHealth,
-    hasBonusLife,
-    previousPlayerHealth,
-  ]);
+  }, [currentMonsterHealth, currentPlayerHealth, hasBonusLife]);
+
+  function reset() {
+    setCurrentPlayerHealth(chosenMaxLife);
+    setCurrentMonsterHealth(chosenMaxLife);
+    setIsGameOver(false); // Re-enable gameplay
+  }
 
   // Function to calculate random damage dealt to the monster and the player
   function dealDamage(damage) {
@@ -71,6 +86,8 @@ export default function App() {
 
   // Handler function for the player's attacks
   function attackMonster(mode) {
+    if (isGameOver) return; // Prevent actions if the game is over
+
     let maxDamage;
     if (mode === "ATTACK") {
       maxDamage = ATTACK_VALUE;
@@ -98,6 +115,8 @@ export default function App() {
   }
 
   function healPlayerHandler() {
+    if (isGameOver) return; // Prevent actions if the game is over
+
     let healValue;
     if (currentPlayerHealth === chosenMaxLife) {
       Alert.alert("Your health is already full!");
