@@ -8,17 +8,31 @@ export default function App() {
   const ATTACK_VALUE = 10;
   const STRONG_ATTACK_VALUE = 17;
   const MONSTER_ATTACK_VALUE = 14;
-  const HEAL_VALUE = 20;
 
   // Initial maximum life for monster and player
   const chosenMaxLife = 100;
+
+  const HEAL_VALUE = 20;
 
   // State variables for monster and player health
   const [currentMonsterHealth, setCurrentMonsterHealth] =
     useState(chosenMaxLife);
   const [currentPlayerHealth, setCurrentPlayerHealth] = useState(chosenMaxLife);
 
+  // Track the player's health before the monster's attack
+  const [previousPlayerHealth, setPreviousPlayerHealth] =
+    useState(chosenMaxLife);
+
+  const [hasBonusLife, setHasBonusLife] = useState(true);
+
   useEffect(() => {
+    if (currentPlayerHealth <= 0 && hasBonusLife) {
+      setHasBonusLife(false);
+      setCurrentPlayerHealth(previousPlayerHealth); // Restore health to its state before the monster's attack
+      Alert.alert("You would be dead but the bonus life saved you!");
+      return;
+    }
+
     if (currentMonsterHealth <= 0 && currentPlayerHealth > 0) {
       Alert.alert("We won!");
     } else if (currentPlayerHealth <= 0 && currentMonsterHealth > 0) {
@@ -26,7 +40,12 @@ export default function App() {
     } else if (currentMonsterHealth <= 0 && currentPlayerHealth <= 0) {
       Alert.alert("You have a draw!");
     }
-  }, [currentMonsterHealth, currentPlayerHealth]);
+  }, [
+    currentMonsterHealth,
+    currentPlayerHealth,
+    hasBonusLife,
+    previousPlayerHealth,
+  ]);
 
   // Function to calculate random damage dealt to the monster and the player
   function dealDamage(damage) {
@@ -34,10 +53,15 @@ export default function App() {
     return dealtDamage;
   }
 
+  // Function to begin a new round and save the player's health
+  function startNewRound() {
+    setPreviousPlayerHealth(currentPlayerHealth); // Save the current health at the start of the round
+    attackPlayer(); // Monster attacks at the beginning of the round
+  }
+
+  // Handler function for the monster's attacks
   function attackPlayer() {
     const playerDamage = dealDamage(MONSTER_ATTACK_VALUE);
-    // const updatedPlayerHealth = Math.max(currentPlayerHealth - playerDamage, 0); // Ensure health does not go below 0
-    // setCurrentPlayerHealth(updatedPlayerHealth);
 
     setCurrentPlayerHealth((prevHealth) => {
       const newPlayerHealth = Math.max(prevHealth - playerDamage, 0);
@@ -62,7 +86,7 @@ export default function App() {
 
     setCurrentMonsterHealth(updatedMonsterHealth);
 
-    attackPlayer();
+    startNewRound(); // Start the next round after the player's attack
   }
 
   function attackHandler() {
@@ -92,7 +116,7 @@ export default function App() {
 
     // Alert.alert(`You healed ${healValue} health points!`);
 
-    attackPlayer();
+    startNewRound(); // Start a new round after healing
   }
 
   return (
@@ -108,9 +132,11 @@ export default function App() {
         />
         <Text style={styles.title}>PLAYER HEALTH</Text>
         {/* Bonus life indicator */}
-        <View style={styles.bonusLifeContainer}>
-          <Text style={styles.bonusLife}>1</Text>
-        </View>
+        {hasBonusLife && (
+          <View style={styles.bonusLifeContainer}>
+            <Text style={styles.bonusLife}>1</Text>
+          </View>
+        )}
         {/* Player health bar */}
         <Progress.Bar
           progress={currentPlayerHealth / chosenMaxLife}
