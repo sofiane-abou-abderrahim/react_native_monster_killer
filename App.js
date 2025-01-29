@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Alert, Button, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Progress from "react-native-progress";
 
 export default function App() {
@@ -11,7 +11,9 @@ export default function App() {
   const HEAL_VALUE = 20;
 
   // Initial health points for player and monster
-  const chosenMaxLife = 100;
+  const [enteredValue, setEnteredValue] = useState(""); // State to track if the user has confirmed the health value
+  const [chosenMaxLife, setChosenMaxLife] = useState(100); // State to store the chosen maximum health (default is 100)
+  const [isHealthConfirmed, setIsHealthConfirmed] = useState(false); // State to track if the user has confirmed the health value
 
   // State to track health points
   const [currentMonsterHealth, setCurrentMonsterHealth] =
@@ -27,6 +29,14 @@ export default function App() {
 
   // State to determine if the game is over
   const [isGameOver, setIsGameOver] = useState(false);
+
+  useEffect(() => {
+    if (isHealthConfirmed) {
+      setCurrentMonsterHealth(chosenMaxLife);
+      setCurrentPlayerHealth(chosenMaxLife);
+      setPreviousPlayerHealth(chosenMaxLife);
+    }
+  }, [chosenMaxLife, isHealthConfirmed]);
 
   // Effect to monitor health changes and handle game logic
   useEffect(() => {
@@ -55,6 +65,22 @@ export default function App() {
       ]);
     }
   }, [currentMonsterHealth, currentPlayerHealth, hasBonusLife]);
+
+  // Function to handle health confirmation
+  function confirmHealthHandler() {
+    const parsedValue = parseInt(enteredValue);
+
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      setChosenMaxLife(100);
+      console.log("Input is invalid, used default value!");
+    } else {
+      setChosenMaxLife(parsedValue);
+      console.log("Valid input!");
+    }
+
+    setIsHealthConfirmed(true); // Mark the health as confirmed
+    console.log("Health confirmed", enteredValue);
+  }
 
   function reset() {
     setCurrentPlayerHealth(chosenMaxLife);
@@ -96,12 +122,9 @@ export default function App() {
     }
     const monsterDamage = dealDamage(maxDamage);
 
-    const updatedMonsterHealth = Math.max(
-      currentMonsterHealth - monsterDamage,
-      0
+    setCurrentMonsterHealth((prevHealth) =>
+      Math.max(prevHealth - monsterDamage, 0)
     ); // Ensure health does not go below 0
-
-    setCurrentMonsterHealth(updatedMonsterHealth);
 
     startNewRound(); // Start the next round after the player's attack
   }
@@ -141,52 +164,73 @@ export default function App() {
   return (
     <View style={styles.container}>
       {/* Health levels section */}
-      <View style={styles.healthSection}>
-        <Text style={styles.title}>MONSTER HEALTH</Text>
-        {/* Monster health bar */}
-        <Progress.Bar
-          progress={currentMonsterHealth / chosenMaxLife}
-          width={200}
-          color="#ff0000"
-        />
-        <Text style={styles.title}>PLAYER HEALTH</Text>
-        {/* Bonus life indicator */}
-        {hasBonusLife && (
-          <View style={styles.bonusLifeContainer}>
-            <Text style={styles.bonusLife}>1</Text>
-          </View>
-        )}
-        {/* Player health bar */}
-        <Progress.Bar
-          progress={currentPlayerHealth / chosenMaxLife}
-          width={200}
-          color="#00ff00"
-        />
-      </View>
-
-      {/* Controls section */}
-      <View style={styles.controls}>
-        {/* Attack button */}
-        <View style={styles.buttonContainer}>
-          <Button title="ATTACK" color="#841584" onPress={attackHandler} />
-        </View>
-        {/* Strong attack button */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="STRONG ATTACK"
-            color="#841584"
-            onPress={strongAttackHandler}
+      {isHealthConfirmed ? (
+        <View style={styles.healthSection}>
+          <Text style={styles.title}>MONSTER HEALTH</Text>
+          {/* Monster health bar */}
+          <Progress.Bar
+            progress={currentMonsterHealth / chosenMaxLife}
+            width={200}
+            color="#ff0000"
           />
+          <Text style={styles.title}>PLAYER HEALTH</Text>
+          {/* Bonus life indicator */}
+          {hasBonusLife && (
+            <View style={styles.bonusLifeContainer}>
+              <Text style={styles.bonusLife}>1</Text>
+            </View>
+          )}
+          {/* Player health bar */}
+          <Progress.Bar
+            progress={currentPlayerHealth / chosenMaxLife}
+            width={200}
+            color="#00ff00"
+          />
+          {/* Controls section */}
+          <View style={styles.controls}>
+            {/* Attack button */}
+            <View style={styles.buttonContainer}>
+              <Button title="ATTACK" color="#841584" onPress={attackHandler} />
+            </View>
+            {/* Strong attack button */}
+            <View style={styles.buttonContainer}>
+              <Button
+                title="STRONG ATTACK"
+                color="#841584"
+                onPress={strongAttackHandler}
+              />
+            </View>
+            {/* Heal button */}
+            <View style={styles.buttonContainer}>
+              <Button
+                title="HEAL"
+                color="#841584"
+                onPress={healPlayerHandler}
+              />
+            </View>
+            {/* Show log button */}
+            <View style={styles.buttonContainer}>
+              <Button title="SHOW LOG" color="#841584" />
+            </View>
+          </View>
         </View>
-        {/* Heal button */}
-        <View style={styles.buttonContainer}>
-          <Button title="HEAL" color="#841584" onPress={healPlayerHandler} />
+      ) : (
+        <View>
+          {/* Maximum life choice section */}
+          <Text style={styles.text}>
+            Enter maximum life for you and the monster:
+          </Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="number-pad" // Display numeric keyboard
+            placeholder="100"
+            onChangeText={(text) => setEnteredValue(text)} // Update the input state
+            value={enteredValue}
+          />
+          <Button title="Confirm" onPress={confirmHealthHandler} />
         </View>
-        {/* Show log button */}
-        <View style={styles.buttonContainer}>
-          <Button title="SHOW LOG" color="#841584" />
-        </View>
-      </View>
+      )}
+
       <StatusBar style="auto" />
     </View>
   );
