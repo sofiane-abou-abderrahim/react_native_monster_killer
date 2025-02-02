@@ -10,6 +10,9 @@ export default function App() {
   const MONSTER_ATTACK_VALUE = 14;
   const HEAL_VALUE = 20;
 
+  const MODE_ATTACK = "ATTACK"; // MODE_ATTACK = 0
+  const MODE_STRONG_ATTACK = "STRONG_ATTACK"; // MODE_STRONG_ATTACK = 1
+
   // Initial health points for player and monster
   const [enteredValue, setEnteredValue] = useState(""); // State to track if the user has confirmed the health value
   const [chosenMaxLife, setChosenMaxLife] = useState(100); // State to store the chosen maximum health (default is 100)
@@ -115,9 +118,9 @@ export default function App() {
     if (isGameOver) return; // Prevent actions if the game is over
 
     let maxDamage;
-    if (mode === "ATTACK") {
+    if (mode === MODE_ATTACK) {
       maxDamage = ATTACK_VALUE;
-    } else if (mode === "STRONG_ATTACK") {
+    } else if (mode === MODE_STRONG_ATTACK) {
       maxDamage = STRONG_ATTACK_VALUE;
     }
     const monsterDamage = dealDamage(maxDamage);
@@ -130,11 +133,11 @@ export default function App() {
   }
 
   function attackHandler() {
-    attackMonster("ATTACK");
+    attackMonster(MODE_ATTACK);
   }
 
   function strongAttackHandler() {
-    attackMonster("STRONG_ATTACK");
+    attackMonster(MODE_STRONG_ATTACK);
   }
 
   function healPlayerHandler() {
