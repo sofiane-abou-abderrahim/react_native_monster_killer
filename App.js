@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Button,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import * as Progress from "react-native-progress";
 
 export default function App() {
@@ -12,6 +20,11 @@ export default function App() {
 
   const MODE_ATTACK = "ATTACK"; // MODE_ATTACK = 0
   const MODE_STRONG_ATTACK = "STRONG_ATTACK"; // MODE_STRONG_ATTACK = 1
+  const LOG_EVENT_PLAYER_ATTACK = "PLAYER_ATTACK";
+  const LOG_EVENT_PLAYER_STRONG_ATTACK = "PLAYER_STRONG_ATTACK";
+  const LOG_EVENT_MONSTER_ATTACK = "MONSTER_ATTACK";
+  const LOG_EVENT_PLAYER_HEAL = "PLAYER_HEAL";
+  const LOG_EVENT_GAME_OVER = "GAME_OVER";
 
   // Initial health points for player and monster
   const [enteredValue, setEnteredValue] = useState(""); // State to track if the user has confirmed the health value
@@ -32,6 +45,9 @@ export default function App() {
 
   // State to determine if the game is over
   const [isGameOver, setIsGameOver] = useState(false);
+
+  const [battleLog, setBattleLog] = useState([]);
+  const [showLog, setShowLog] = useState(false);
 
   useEffect(() => {
     if (isHealthConfirmed) {
@@ -58,9 +74,28 @@ export default function App() {
       let resultMessage = "It's a draw!";
       if (currentMonsterHealth <= 0 && currentPlayerHealth > 0) {
         resultMessage = "We won!";
+        writeToLog(
+          LOG_EVENT_GAME_OVER,
+          "PLAYER WON",
+          currentMonsterHealth,
+          currentPlayerHealth
+        );
       } else if (currentPlayerHealth <= 0 && currentMonsterHealth > 0) {
         resultMessage = "You lost!";
+        writeToLog(
+          LOG_EVENT_GAME_OVER,
+          "MONSTER WON",
+          currentMonsterHealth,
+          currentPlayerHealth
+        );
       }
+
+      writeToLog(
+        LOG_EVENT_GAME_OVER,
+        "A DRAW",
+        currentMonsterHealth,
+        currentPlayerHealth
+      );
 
       // Show alert and wait for user to reset the game
       Alert.alert(resultMessage, "Start a new game?", [
@@ -68,6 +103,26 @@ export default function App() {
       ]);
     }
   }, [currentMonsterHealth, currentPlayerHealth, hasBonusLife]);
+
+  function writeToLog(ev, val, monsterHealth, playerHealth) {
+    let logEntry = {
+      event: ev,
+      value: val,
+      finalMonsterHealth: monsterHealth,
+      finalPlayerHealth: playerHealth,
+    };
+    if (ev === LOG_EVENT_PLAYER_ATTACK) {
+      logEntry.target = "MONSTER";
+    } else if (ev === LOG_EVENT_PLAYER_STRONG_ATTACK) {
+      logEntry.target = "MONSTER";
+    } else if (ev === LOG_EVENT_MONSTER_ATTACK) {
+      logEntry.target = "PLAYER";
+    } else if (ev === LOG_EVENT_PLAYER_HEAL) {
+      logEntry.target = "PLAYER";
+    } else if (ev === LOG_EVENT_GAME_OVER) {
+    }
+    setBattleLog((prevLog) => [...prevLog, logEntry]);
+  }
 
   // Function to handle health confirmation
   function confirmHealthHandler() {
@@ -89,6 +144,7 @@ export default function App() {
     setCurrentPlayerHealth(chosenMaxLife);
     setCurrentMonsterHealth(chosenMaxLife);
     setIsGameOver(false); // Re-enable gameplay
+    setBattleLog([]);
   }
 
   // Function to calculate random damage dealt to the monster and the player
@@ -111,6 +167,13 @@ export default function App() {
       const newPlayerHealth = Math.max(prevHealth - playerDamage, 0);
       return newPlayerHealth;
     });
+
+    writeToLog(
+      LOG_EVENT_MONSTER_ATTACK,
+      playerDamage,
+      currentMonsterHealth,
+      currentPlayerHealth
+    );
   }
 
   // Handler function for the player's attacks
@@ -118,16 +181,26 @@ export default function App() {
     if (isGameOver) return; // Prevent actions if the game is over
 
     let maxDamage;
+    let logEvent;
     if (mode === MODE_ATTACK) {
       maxDamage = ATTACK_VALUE;
+      logEvent = LOG_EVENT_PLAYER_ATTACK;
     } else if (mode === MODE_STRONG_ATTACK) {
       maxDamage = STRONG_ATTACK_VALUE;
+      logEvent = LOG_EVENT_PLAYER_ATTACK;
     }
     const monsterDamage = dealDamage(maxDamage);
 
     setCurrentMonsterHealth((prevHealth) =>
       Math.max(prevHealth - monsterDamage, 0)
     ); // Ensure health does not go below 0
+
+    writeToLog(
+      logEvent,
+      monsterDamage,
+      currentMonsterHealth,
+      currentPlayerHealth
+    );
 
     startNewRound(); // Start the next round after the player's attack
   }
@@ -159,9 +232,20 @@ export default function App() {
     const updatedPlayerHealth = currentPlayerHealth + healValue;
     setCurrentPlayerHealth(updatedPlayerHealth);
 
+    writeToLog(
+      LOG_EVENT_PLAYER_HEAL,
+      healValue,
+      currentMonsterHealth,
+      currentPlayerHealth
+    );
+
     // Alert.alert(`You healed ${healValue} health points!`);
 
     startNewRound(); // Start a new round after healing
+  }
+
+  function printLogHandler() {
+    setShowLog((prevState) => !prevState);
   }
 
   return (
@@ -193,7 +277,12 @@ export default function App() {
           <View style={styles.controls}>
             {/* Attack button */}
             <View style={styles.buttonContainer}>
-              <Button title="ATTACK" color="#841584" onPress={attackHandler} />
+              <Button
+                title="ATTACK"
+                color="#841584"
+                onPress={attackHandler}
+                disabled={showLog}
+              />
             </View>
             {/* Strong attack button */}
             <View style={styles.buttonContainer}>
@@ -201,6 +290,7 @@ export default function App() {
                 title="STRONG ATTACK"
                 color="#841584"
                 onPress={strongAttackHandler}
+                disabled={showLog}
               />
             </View>
             {/* Heal button */}
@@ -209,12 +299,45 @@ export default function App() {
                 title="HEAL"
                 color="#841584"
                 onPress={healPlayerHandler}
+                disabled={showLog}
               />
             </View>
             {/* Show log button */}
             <View style={styles.buttonContainer}>
-              <Button title="SHOW LOG" color="#841584" />
+              <Button
+                title="SHOW LOG"
+                color="#841584"
+                onPress={printLogHandler}
+              />
             </View>
+
+            {showLog && (
+              <FlatList
+                style={styles.logContainer}
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+                keyboardShouldPersistTaps="handled"
+                data={battleLog}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <View
+                    style={{
+                      padding: 10,
+                      borderBottomWidth: 1,
+                      borderColor: "#ccc",
+                    }}
+                  >
+                    <Text>📜 {item.event}</Text>
+                    <Text>🗡️ Value: {item.value}</Text>
+                    <Text>
+                      💀 Monster Health: {item.finalMonsterHealth.toFixed(2)}
+                    </Text>
+                    <Text>
+                      ❤️ Player Health: {item.finalPlayerHealth.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
           </View>
         </View>
       ) : (
@@ -285,5 +408,12 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginVertical: 8,
     width: "80%",
+  },
+  logContainer: {
+    flexShrink: 1,
+    maxHeight: 500,
+    width: "90%",
+    marginTop: 10,
+    paddingBottom: 100,
   },
 });
