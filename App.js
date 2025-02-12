@@ -130,36 +130,41 @@ export default function App() {
       default:
         logEntry = {};
     }
-    // if (ev === LOG_EVENT_PLAYER_ATTACK) {
-    //   logEntry.target = "MONSTER";
-    // } else if (ev === LOG_EVENT_PLAYER_STRONG_ATTACK) {
-    //   logEntry.target = "MONSTER";
-    // } else if (ev === LOG_EVENT_MONSTER_ATTACK) {
-    //   logEntry.target = "PLAYER";
-    // } else if (ev === LOG_EVENT_PLAYER_HEAL) {
-    //   logEntry.target = "PLAYER";
-    // } else if (ev === LOG_EVENT_GAME_OVER) {
-    // }
+
     setBattleLog((prevLog) => [...prevLog, logEntry]);
+  }
+
+  function getMaxLifeValues() {
+    const parsedValue = parseInt(enteredValue);
+
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      // Throw an actual Error instance
+      throw new Error("Invalid user input, not a number!");
+    }
+    return parsedValue;
   }
 
   // Function to handle health confirmation
   function confirmHealthHandler() {
-    const parsedValue = parseInt(enteredValue);
-
-    if (isNaN(parsedValue) || parsedValue <= 0) {
+    try {
+      const chosenMaxLife = getMaxLifeValues();
+      setChosenMaxLife(chosenMaxLife);
+      console.log("Health confirmed", chosenMaxLife);
+    } catch (error) {
+      console.log(error);
       setChosenMaxLife(100);
-      console.log("Input is invalid, used default value!");
-    } else {
-      setChosenMaxLife(parsedValue);
-      console.log("Valid input!");
+      Alert.alert(
+        "You entered something wrong, default value of 100 was used."
+      );
+      console.log("Health confirmed", chosenMaxLife);
     }
 
     setIsHealthConfirmed(true); // Mark the health as confirmed
-    console.log("Health confirmed", enteredValue);
   }
 
   function reset() {
+    setIsHealthConfirmed(false);
+    setEnteredValue("");
     setCurrentPlayerHealth(chosenMaxLife);
     setCurrentMonsterHealth(chosenMaxLife);
     setIsGameOver(false); // Re-enable gameplay
@@ -205,13 +210,6 @@ export default function App() {
         ? LOG_EVENT_PLAYER_ATTACK
         : LOG_EVENT_PLAYER_STRONG_ATTACK;
 
-    // if (mode === MODE_ATTACK) {
-    //   maxDamage = ATTACK_VALUE;
-    //   logEvent = LOG_EVENT_PLAYER_ATTACK;
-    // } else if (mode === MODE_STRONG_ATTACK) {
-    //   maxDamage = STRONG_ATTACK_VALUE;
-    //   logEvent = LOG_EVENT_PLAYER_ATTACK;
-    // }
     const monsterDamage = dealDamage(maxDamage);
 
     setCurrentMonsterHealth((prevHealth) =>
@@ -261,8 +259,6 @@ export default function App() {
       currentMonsterHealth,
       currentPlayerHealth
     );
-
-    // Alert.alert(`You healed ${healValue} health points!`);
 
     startNewRound(); // Start a new round after healing
   }
@@ -332,6 +328,10 @@ export default function App() {
                 color="#841584"
                 onPress={printLogHandler}
               />
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <Button title="RESET" color="#FF5733" onPress={reset} />
             </View>
 
             {showLog && (
